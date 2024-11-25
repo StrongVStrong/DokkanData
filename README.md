@@ -1,0 +1,2 @@
+# DokkanData
+ Dokkan Wiki Scraper

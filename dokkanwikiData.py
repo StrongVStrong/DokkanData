@@ -97,13 +97,42 @@ def extract_character_data(state):
         print(f"Error extracting character data for {state}: {e}")
 
         
+# Function to determine the total number of pages dynamically
+def get_total_pages():
+    try:
+        # Navigate to the first page
+        driver.get(base_url.format(1))
+        
+        # Wait for the pagination section to load
+        WebDriverWait(driver, 1).until(
+            EC.presence_of_element_located((By.CLASS_NAME, "pagination"))
+        )
+        
+        # Locate the pagination element
+        pagination = driver.find_element(By.CLASS_NAME, "pagination")
+        
+        # Get all page numbers within the pagination
+        page_numbers = pagination.find_elements(By.CLASS_NAME, "page-link")
+        
+        # Extract the maximum page number from the list
+        max_page = max([int(page.text) for page in page_numbers if page.text.isdigit()])
+        return max_page
+    except Exception as e:
+        print(f"Error determining the total number of pages: {e}")
+        return 1  # Default to 1 if unable to fetch the total page count
+
+
 # Base URL for pagination
 base_url = "https://dokkan.wiki/cards#!(p:{})"
 # Set to track processed pages
 processed_pages = set()
 
 try:
-    for page in range(1, 3):  # Adjust range as needed
+    # Get the total number of pages dynamically
+    total_pages = get_total_pages()
+    print(f"Total pages found: {total_pages}")
+
+    for page in range(1, total_pages + 1):  # Use the dynamic total page count
         if page in processed_pages:
             print(f"Skipping already processed page {page}.")
             continue  # Skip already processed pages
@@ -116,7 +145,7 @@ try:
         driver.refresh()
 
         # Wait for the card elements to load
-        WebDriverWait(driver, 10).until(
+        WebDriverWait(driver, 1).until(
             EC.presence_of_all_elements_located((By.CLASS_NAME, "card-thumb-wrapper"))
         )
 
@@ -145,7 +174,7 @@ try:
         driver.get(link)
 
         # Wait for the page to load by ensuring a key element is present
-        WebDriverWait(driver, 10).until(
+        WebDriverWait(driver, 1).until(
             EC.presence_of_element_located((By.TAG_NAME, "h1"))
         )
 
@@ -154,26 +183,26 @@ try:
 
         # Switch to EZA Tab if Available
         try:
-            eza_tab = WebDriverWait(driver, 5).until(
+            eza_tab = WebDriverWait(driver, 1).until(
                 EC.element_to_be_clickable((By.CLASS_NAME, "btn.dokkan-btn-tab.p-3.right"))
             )
             eza_tab.click()
 
             # Wait for the EZA tab content to load
-            WebDriverWait(driver, 10).until(
+            WebDriverWait(driver, 1).until(
                 EC.presence_of_element_located((By.CLASS_NAME, "some-class-inside-eza-tab"))
             )
             extract_character_data("EZA")
         except Exception as e:
             print(f"EZA tab not found for {link}. Checking for Base tab: {e}")
             try:
-                base_tab = WebDriverWait(driver, 5).until(
+                base_tab = WebDriverWait(driver, 1).until(
                     EC.element_to_be_clickable((By.CLASS_NAME, "btn.dokkan-btn-tab.p-3.left"))
                 )
                 base_tab.click()
 
                 # Wait for the Base tab content to load
-                WebDriverWait(driver, 10).until(
+                WebDriverWait(driver, 1).until(
                     EC.presence_of_element_located((By.CLASS_NAME, "some-class-inside-base-tab"))
                 )
                 extract_character_data("Base")
@@ -201,8 +230,6 @@ except KeyboardInterrupt:
 except Exception as e:
     print(f"Error during scraping: {e}")
 
-
-
 # Save Data to CSV
 df = pd.DataFrame(character_data)
 df.to_csv("dokkan_character_details_test.csv", index=False)
@@ -210,3 +237,4 @@ print("Data saved to dokkan_character_details_test.csv.")
 
 # Quit the Driver
 driver.quit()
+

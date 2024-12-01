@@ -3,7 +3,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import pandas as pd
-import time
+import json
 
 # Selenium setup
 driver = webdriver.Chrome()  # Ensure ChromeDriver is installed and in PATH
@@ -11,16 +11,17 @@ driver = webdriver.Chrome()  # Ensure ChromeDriver is installed and in PATH
 # Data storage
 character_data = []
 character_links = []
+test_links = [
+    "https://dokkan.wiki/cards/1026901",
+    "https://dokkan.wiki/cards/1014761"
+]
 
 # Predefined arrays for valid links and categories
-valid_links = [
-    "Saiyan Warrior Race", "Prepared for Battle", "Shocking Speed",
-    "All in the Family", "Legendary Power", "Fierce Battle"
-]
-valid_categories = [
-    "Pure Saiyans", "Fusion", "Joined Forces",
-    "Movie Heroes", "Kamehameha", "Final Trump Card"
-]
+valid_links = {}
+
+with open("dokkan_links.json", "r", encoding="utf-8") as f:
+    valid_links = json.load(f)
+
 
 # Function to extract character data
 def extract_character_data(state):
@@ -62,20 +63,57 @@ def extract_character_data(state):
         except Exception:
             super_attack_18_effect = "N/A"
 
-        # Links
-        links_section = driver.find_elements(By.CLASS_NAME, "dokkan-link-wrapper")
-        link_names = [
-            link.text.strip() for link in links_section if link.text.strip() in valid_links
-        ]
+        # Extract Links
+        try:
+            # Locate the parent container for links
+            links_container = driver.find_element(By.CLASS_NAME, "row.g-2.justify-content-center.align-items-center")
+            
+            # Find all `div` elements with class `col-auto` within the container
+            link_elements = links_container.find_elements(By.CLASS_NAME, "col-auto")
+            
+            # Extract the text from nested `div.text` inside each link element
+            link_names = [link.find_element(By.CLASS_NAME, "text").text.strip() for link in link_elements]
+            
+            print(f"Extracted Links: {link_names}")
+        except Exception as e:
+            print(f"Error extracting links: ")
 
-        # Categories
-        categories_section = driver.find_elements(By.CLASS_NAME, "col-auto")
-        category_names = [
-            category.text.strip() for category in categories_section if category.text.strip() in valid_categories
-        ]
+        # Extract Categories
+        try:
+            # Locate the container with id="categories"
+            categories_section = driver.find_element(By.ID, "categories")
+            
+            # Within this section, find the specific row containing categories
+            categories_container = categories_section.find_element(By.CLASS_NAME, "row.g-2.justify-content-center.align-items-center")
+            
+            # Find all category elements (div.col-auto)
+            category_elements = categories_container.find_elements(By.CLASS_NAME, "col-auto")
+            
+            # Extract `alt` or `title` attributes from `img` tags inside each `col-auto`
+            category_names = [
+                cat.find_element(By.TAG_NAME, "img").get_attribute("alt") or 
+                cat.find_element(By.TAG_NAME, "img").get_attribute("title")
+                for cat in category_elements
+            ]
+            
+            print(f"Extracted Categories: {category_names}")
+        except Exception as e:
+            print(f"Error extracting categories: ")
 
-        # Transformation Condition
-        transformation_condition = driver.find_element(By.CLASS_NAME, "col-12.col-md.light").text.replace("\n", " ").strip() if driver.find_elements(By.CLASS_NAME, "col-12.col-md.light") else "N/A"
+
+        # Extract Transformation Condition
+        transformation_condition = []
+        try:
+            # Locate the container with id="transformations"
+            transformations_section = driver.find_element(By.ID, "transformations")
+            
+            # Find the first paragraph element with class "mb-0" containing the transformation condition text
+            transformation_condition = transformations_section.find_element(By.CLASS_NAME, "mb-0").text.strip()
+            
+            print(f"Extracted Transformation Condition: {transformation_condition}")
+        except Exception as e:
+            print(f"Error extracting transformation condition: ")
+
 
         # Save the data for the state
         character_data.append({
@@ -158,7 +196,7 @@ try:
             link = card.get_attribute('href')
             if link and link.startswith("https://dokkan.wiki/cards/") and link not in character_links:
                 character_links.append(link)  # Add unique links
-                print(f"Found character link: {link}")  # Log unique links
+                print(f"Found character: {link}")  # Log unique links
 
         # If fewer cards are found, print a note (optional for debugging)
         if len(cards) < 32:
@@ -170,7 +208,9 @@ try:
     print(f"Collected {len(character_links)} unique character links.")
 
     # Step 2: Visit Each Character Page
-    for link in character_links:
+    total_characters = len(character_links)
+    for current_index, link in enumerate(character_links, start = 1):
+        print(f"\nProcessing character {current_index}/{total_characters}: {link}")
         driver.get(link)
 
         # Wait for the page to load by ensuring a key element is present
@@ -194,7 +234,7 @@ try:
             )
             extract_character_data("EZA")
         except Exception as e:
-            print(f"EZA tab not found for {link}. Checking for Base tab: {e}")
+            print(f"EZA tab not found for {link}. Checking for Base tab: ")
             try:
                 base_tab = WebDriverWait(driver, 1).until(
                     EC.element_to_be_clickable((By.CLASS_NAME, "btn.dokkan-btn-tab.p-3.left"))
@@ -207,23 +247,61 @@ try:
                 )
                 extract_character_data("Base")
             except Exception as e:
-                print(f"Base tab not found for {link}: {e}")
+                print(f"Base tab not found for {link}: ")
 
         # Handle Transformations
         try:
-            transformations = driver.find_elements(By.CLASS_NAME, "card-thumb-wrapper")
-            for transformation in transformations:
-                transformation_link = transformation.get_attribute("href")
-                if transformation_link and transformation_link != link:  # Avoid revisiting the main page
-                    driver.get(transformation_link)
+            # Locate the transformations section by its ID
+            transformations_section = driver.find_element(By.ID, "transformations")
+            
+            # Locate all transformation containers (list-group-item blocks)
+            transformation_items = transformations_section.find_elements(By.CLASS_NAME, "list-group-item")
+            
+            total_transformations = len(transformation_items)
+            print(f"Found {total_transformations} transformations for this character.")
 
+            # Process transformations one by one
+            for i, item in enumerate(transformation_items):
+                # Re-locate transformations section and items after each navigation
+                transformations_section = driver.find_element(By.ID, "transformations")
+                transformation_items = transformations_section.find_elements(By.CLASS_NAME, "list-group-item")
+                
+                # Get the current transformation link
+                transformation_link_element = transformation_items[i].find_element(By.CLASS_NAME, "card-thumb-wrapper")
+                transformation_link = transformation_link_element.get_attribute("href")
+
+                # Get the transformation condition for the *next* transformation (offset by one index)
+                transformation_condition = "N/A"
+                if i < total_transformations - 1:  # Skip condition extraction for the last transformation
+                    try:
+                        next_condition_element = transformation_items[i + 1].find_element(By.CLASS_NAME, "mb-0")
+                        transformation_condition = next_condition_element.text.strip()
+                        print(f"Extracted Transformation Condition for Transformation {i + 1}: {transformation_condition}")
+                    except Exception as e:
+                        print(f"Error extracting transformation condition for Transformation {i + 1}: ")
+
+                # Navigate to the transformation page
+                if transformation_link and transformation_link != driver.current_url:
+                    print(f"Processing Transformation {i + 1}/{total_transformations}: {transformation_link}")
+                    driver.get(transformation_link)
+                    
                     # Wait for the transformation page to load
                     WebDriverWait(driver, 10).until(
                         EC.presence_of_element_located((By.TAG_NAME, "h1"))
                     )
+                    
+                    # Extract data for this transformation
                     extract_character_data("Transformation")
+
+                    # Update the "Transformation Condition" field with the offset condition
+                    character_data[-1]["Transformation Condition"] = transformation_condition
+
         except Exception as e:
-            print(f"No transformations found for {link}: {e}")
+            print(f"No transformations found or error occurred: ")
+
+
+
+
 
 except KeyboardInterrupt:
     print("Force stop detected. Saving progress...")

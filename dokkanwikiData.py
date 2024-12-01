@@ -170,7 +170,7 @@ try:
     total_pages = get_total_pages()
     print(f"Total pages found: {total_pages}")
 
-    for page in range(1, total_pages + 1):  # Use the dynamic total page count
+    for page in range(1, 2):  # Use the dynamic total page count
         if page in processed_pages:
             print(f"Skipping already processed page {page}.")
             continue  # Skip already processed pages
@@ -220,6 +220,10 @@ try:
 
         # Extract Base Data
         extract_character_data("Base")
+        
+        #Save data
+        df = pd.DataFrame(character_data)
+        df.to_csv("dokkan_character_details_test.csv", index=False)
 
         # Switch to EZA Tab if Available
         try:
@@ -308,10 +312,6 @@ except KeyboardInterrupt:
 except Exception as e:
     print(f"Error during scraping: {e}")
 
-# Save Data to CSV
-df = pd.DataFrame(character_data)
-df.to_csv("dokkan_character_details_test.csv", index=False)
-print("Data saved to dokkan_character_details_test.csv.")
 
 # Quit the Driver
 driver.quit()

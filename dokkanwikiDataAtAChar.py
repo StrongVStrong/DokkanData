@@ -342,9 +342,31 @@ try:
 
     print(f"Collected {len(character_links)} unique character links.")
     
+    # Set to track processed character links to avoid duplicates
+    processed_links = set()
+
+    # Flag to indicate whether to start processing
+    start_link = "https://dokkan.wiki/cards/1003161"
+    start_processing = False
+
     # Step 2: Visit Each Character Page
     total_characters = len(character_links)
-    for current_index, link in enumerate(character_links, start = 1):
+
+    for current_index, link in enumerate(character_links, start=1):
+        # If we haven't reached the start link, skip to the next link
+        if not start_processing:
+            if link == start_link:
+                print(f"Found start link: {link}. Starting from here.")
+                start_processing = True  # Start processing from this link
+            else:
+                continue  # Skip the link until we find the start link
+
+        # Skip if the link has already been processed
+        if link in processed_links:
+            print(f"Skipping already processed character: {link}")
+            continue  # Skip already processed links
+
+        # Process the character
         print(f"\nProcessing character {current_index}/{total_characters}: {link}")
         driver.get(link)
 
@@ -355,13 +377,18 @@ try:
 
         # Extract Base Data
         extract_character_data("Base")
-        
-        #Save data
+
+        # Save data (append to CSV only if not processed before)
         df = pd.DataFrame(character_data)
-        df.to_csv("dokkan_character_details_test.csv", index=False)
+        df.to_csv("dokkan_character_details_test.csv", mode='a', header=not bool(character_data), index=False)
 
+        # Mark this character link as processed
+        processed_links.add(link)
 
-        # Handle Transformations
+        # Clear character data for next character to avoid duplication
+        character_data.clear()  # This ensures the next character data doesn't get appended to the same list
+
+        # Handle Transformations (same as before)
         try:
             # Locate the transformations section by its ID
             transformations_section = driver.find_element(By.ID, "transformations")
@@ -410,6 +437,7 @@ try:
 
         except Exception as e:
             print(f"No transformations found or error occurred: ")
+
 
 
 

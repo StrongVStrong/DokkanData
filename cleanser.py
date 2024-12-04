@@ -21,9 +21,11 @@ with open(output_file, 'w', newline='') as outfile:
     for row in rows:
         # Extract and modify Leader Skill
         row["Leader Skill"] = row["Leader Skill"].replace("Leader Skill ", "").rstrip('"').strip()
+        row["Leader Skill"] = row["Leader Skill"].replace("(Extreme) ", "").replace("(Super Extreme) ", "").strip()
 
         # Extract and modify Passive Skill
         row["Passive Skill"] = row["Passive Skill"].replace("Passive Skill ", "").rstrip('"').strip()
+        row["Passive Skill"] = row["Passive Skill"].replace("(Extreme) ", "").replace("(Super Extreme) ", "").strip()
 
         # Parse and modify Stats
         stats = row["Stats"]

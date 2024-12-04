@@ -3,7 +3,7 @@ import re
 
 # Input and output file paths
 input_file = "dokkan_character_details_test.csv"  # Replace with your input file
-output_file = "processed_data.csv"
+output_file = "processed_datax.csv"
 
 # Open the input file
 with open(input_file, 'r') as infile:

@@ -2,7 +2,7 @@ import pandas as pd
 import re
 
 # Read the existing CSV file into a DataFrame
-df = pd.read_csv('processed_data.csv')  # Replace with the path to your actual CSV file
+df = pd.read_csv('processed_datax.csv')  # Replace with the path to your actual CSV file
 
 # Function to extract stats
 def extract_stats(stats_str):
@@ -25,6 +25,6 @@ new_columns.columns = ['HP 55%', 'HP 100%', 'ATK 55%', 'ATK 100%', 'DEF 55%', 'D
 df = pd.concat([df.iloc[:, :df.columns.get_loc('Stats 55% 100%') + 1], new_columns, df.iloc[:, df.columns.get_loc('Stats 55% 100%') + 1:]], axis=1)
 
 # Save the updated DataFrame to a new CSV file
-df.to_csv('updated_stats.csv', index=False)  # This will create a new CSV file with the updated data
+df.to_csv('final_datax.csv', index=False)  # This will create a new CSV file with the updated data
 
-print("Updated CSV file saved as 'updated_stats.csv'")
+print("Updated CSV file saved as 'final_datax.csv'")

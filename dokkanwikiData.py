@@ -242,11 +242,6 @@ def extract_character_data(state):
         print(f"Damage Multiplier: {dmg_multiplier}")
 
 
-
-
-
-
-
         # Save the data for the state
         character_data.append({
             "State": state,
@@ -423,4 +418,3 @@ except Exception as e:
 
 # Quit the Driver
 driver.quit()
-

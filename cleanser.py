@@ -28,7 +28,7 @@ with open(output_file, 'w', newline='') as outfile:
         row["Passive Skill"] = row["Passive Skill"].replace("(Extreme) ", "").replace("(Super Extreme) ", "").strip()
 
         # Parse and modify Stats
-        stats = row["Stats"]
+        stats = row["Stats 55% 100%"]
         if stats:  # Ensure Stats field is not empty
             stat_parts = stats.split('|')
 
@@ -48,9 +48,9 @@ with open(output_file, 'w', newline='') as outfile:
             def_55, def_100 = get_values(stat_parts[3]) if "DEF" in stat_parts[3] else ("0", "0")
 
             # Rebuild the Stats column with only the 55% and 100% values
-            row["Stats"] = f"HP {hp_55} {hp_100} | ATK {atk_55} {atk_100} | DEF {def_55} {def_100}"
+            row["Stats 55% 100%"] = f"HP {hp_55} {hp_100} | ATK {atk_55} {atk_100} | DEF {def_55} {def_100}"
         else:
-            row["Stats"] = "HP 0 0 | ATK 0 0 | DEF 0 0"  # Placeholder for missing stats
+            row["Stats 55% 100%"] = "HP 0 0 | ATK 0 0 | DEF 0 0"  # Placeholder for missing stats
 
         # Write the modified row to the output file
         writer.writerow(row)

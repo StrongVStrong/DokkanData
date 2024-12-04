@@ -346,7 +346,7 @@ try:
     processed_links = set()
 
     # Flag to indicate whether to start processing
-    start_link = "https://dokkan.wiki/cards/1003161"
+    start_link = "https://dokkan.wiki/cards/1017411"
     start_processing = False
 
     # Step 2: Visit Each Character Page
@@ -380,7 +380,7 @@ try:
 
         # Save data (append to CSV only if not processed before)
         df = pd.DataFrame(character_data)
-        df.to_csv("dokkan_character_details.csv", mode='a', header=not bool(character_data), index=False)
+        df.to_csv("dokkan_character_details_test.csv", mode='a', header=not bool(character_data), index=False)
 
         # Mark this character link as processed
         processed_links.add(link)

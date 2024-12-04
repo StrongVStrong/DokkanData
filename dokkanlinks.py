@@ -7,7 +7,6 @@ import time
 
 # Setup Selenium WebDriver with UI enabled
 options = webdriver.ChromeOptions()
-# Remove "--headless" to enable UI
 options.add_argument("--disable-gpu")
 options.add_argument("--no-sandbox")
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
@@ -57,7 +56,7 @@ finally:
     driver.quit()
 
 # Save results to a JSON file
-with open("dokkan_links.json", "w", encoding="utf-8") as f:
+with open("dokkan_links2.json", "w", encoding="utf-8") as f:
     json.dump(link_data, f, ensure_ascii=False, indent=4)
 
-print("Data extraction complete! Results saved to dokkan_links.json.")
+print("Data extraction complete! Results saved to dokkan_links2.json.")

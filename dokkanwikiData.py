@@ -118,10 +118,6 @@ def extract_character_data(state):
 
         ki_multiplier = "N/A"
         try:
-            # Wait for the stats section to load
-            stats_section = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.ID, "stats"))
-            )
             
             # Try to find td[2] and td[1] at the same time, without waiting too long
             elements = driver.find_elements(By.XPATH, "//*[@id='stats']/div[2]/div[2]/table/tbody/tr[2]/td[2]") + \
@@ -187,7 +183,6 @@ def extract_character_data(state):
                 "//*[@id='app']/div[2]/div[2]/div[2]/div[4]/div[6]/div/div[2]/table/tbody/tr/td[3]",
                 "//*[@id='app']/div[2]/div[2]/div[2]/div[4]/div[6]/div/div[2]/table/tbody/tr/td[3]",
                 "//*[@id='app']/div[2]/div[2]/div[2]/div[4]/div[6]/div/div[2]/table/tbody/tr/td[4]"
-                
             ]
             
             # Try to find the DMG Multiplier element using the list of XPaths
@@ -247,7 +242,7 @@ def extract_character_data(state):
             "State": state,
             "Name": name,
             "Subname": subname,
-            "Stats": " | ".join(unit_stats),  # Flatten stats into a single string
+            "Stats 55% 100%": " | ".join(unit_stats),  # Flatten stats into a single string
             "Leader Skill": leader_skill,
             "Passive Skill": passive_skill,
             "Active Skill": active_skill,
@@ -328,7 +323,7 @@ try:
                 character_links.append(link)  # Add unique links
                 print(f"Found character: {link}")  # Log unique links
 
-        # If fewer cards are found, print a note (optional for debugging)
+        # If fewer cards are found, print a note
         if len(cards) < 32:
             print(f"Note: Page {page} has fewer than 32 cards. Processing all found cards.")
 

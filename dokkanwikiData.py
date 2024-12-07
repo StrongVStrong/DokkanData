@@ -228,7 +228,7 @@ def extract_character_data(state):
         try:
             # Wait for the release date section(s) to be visible
             # Use a more general XPath to capture all possible release date elements
-            release_dates = WebDriverWait(driver, 10).until(
+            release_dates = WebDriverWait(driver, 0.1).until(
                 EC.presence_of_all_elements_located((By.XPATH, "//*[@id='awakenings']/div[2]//div/p/span"))
             )
             
@@ -273,6 +273,7 @@ def extract_character_data(state):
                     
                     if match:
                         dmg_multiplier = match.group(1)  # Extract only the percentage part
+                        print("Used path number: ", i)
                         break  # Stop once we find the multiplier
                     else:
                         print("No percentage found in the DMG multiplier text.")
@@ -280,6 +281,52 @@ def extract_character_data(state):
                 print(f"No element found for XPath: {i}. ")
                 i += 1
 
+        # LR 12 ki DMG multiplier
+        lr_12ki_dmg_multiplier = None
+        # Function to adjust the XPath by reducing the div number (e.g., from div[6] to div[5])
+        def adjust_xpath_for_18ki(xpath):
+            # Split the XPath by '/div[' to isolate the div elements
+            parts = xpath.split('/div[')
+            
+            # We need to adjust the div in the 5th position (the 5th div element in the XPath)
+            if len(parts) > 5:  # Ensuring there are enough div elements in the XPath to adjust
+                # Get the div number of the 5th div element (index 5 in the list)
+                div_number = int(parts[5].split(']')[0])  # This will give us the 5th div number
+                
+                # Subtract 1 from the div number
+                new_div_number = div_number - 1
+                
+                # Rebuild the XPath with the adjusted div number
+                adjusted_xpath = xpath.replace(f'/div[{div_number}]', f'/div[{new_div_number}]')
+                return adjusted_xpath
+            return xpath  # If there are not enough div elements, return the original XPath
+        
+        if super_attack_18_name:
+            # Get the XPath at index `i` from the list
+            original_xpath = xpath_list[i]
+            
+            # Adjust the XPath for the 5th div element (subtract 1 from the div index)
+            adjusted_xpath = adjust_xpath_for_18ki(original_xpath)
+            
+            # Try to find the LR 12 ki DMG multiplier element using the adjusted XPath
+            try:
+                element = WebDriverWait(driver, 0.1).until(
+                    EC.presence_of_element_located((By.XPATH, adjusted_xpath))
+                )
+                
+                if element:
+                    text = element.text.strip()
+                    
+                    # Extract the percentage (x%) using a regular expression
+                    match = re.search(r"(\d+%)", text)
+                    
+                    if match:
+                        lr_12ki_dmg_multiplier = match.group(1)  # Extract only the percentage part
+                        print(f"LR 12 ki DMG multiplier: {lr_12ki_dmg_multiplier}")
+                    else:
+                        print("No percentage found in the LR 12 ki DMG multiplier text.")
+            except Exception as e:
+                print(f"Error finding LR 12 ki DMG multiplier: {e}")
 
 
         # Save the data for the state
@@ -296,12 +343,13 @@ def extract_character_data(state):
             "Super Attack (12 Ki) Effect": super_attack_12_effect,
             "Ultra Super Attack (18 Ki) Name": super_attack_18_name,
             "Ultra Super Attack (18 Ki) Effect": super_attack_18_effect,
-            "Links": ", ".join(link_names),  # Only valid links are added
-            "Categories": ", ".join(category_names),  # Only valid categories are added
+            "Links": ", ".join(link_names),
+            "Categories": ", ".join(category_names),
             "Transformation Condition": transformation_condition,
             "Release Date": release_date,
             "Ki Multiplier": ki_multiplier,
-            "DMG Multiplier": dmg_multiplier
+            "Highest DMG Multiplier": dmg_multiplier,
+            "LR 12 Ki DMG Multiplier": lr_12ki_dmg_multiplier
         })
 
     except Exception:
@@ -343,7 +391,7 @@ try:
     total_pages = get_total_pages()
     print(f"Total pages found: {total_pages}")
 
-    for page in range(1, 2):  # Use the dynamic total page count
+    for page in range(1, total_pages + 1):  # Use the dynamic total page count
         if page in processed_pages:
             print(f"Skipping already processed page {page}.")
             continue  # Skip already processed pages
@@ -452,9 +500,6 @@ try:
 
         except Exception as e:
             print(f"No transformations for this character")
-
-
-
 
 
 except KeyboardInterrupt:

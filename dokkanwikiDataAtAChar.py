@@ -44,8 +44,10 @@ def extract_character_data(state):
         # Remove the "(Extreme)" part for EZAs
         if "(Extreme)" in leader_skill:
             leader_skill = leader_skill.replace("(Extreme) ", "").strip()
+        if "(Super Extreme)" in leader_skill:
+            leader_skill = leader_skill.replace("(Super Extreme) ", "").strip()
 
-        # Get Passive Name text (save as passive_name)
+        # Get Passive Name
         passive_name = None
         try:
             # Step 1: Find the first div inside #passive-skill div
@@ -80,8 +82,32 @@ def extract_character_data(state):
         # Super Attack Effects
         super_attack_12_effect = None
         super_attack_18_effect = None
+        super_attack_12_name = None
+        super_attack_18_name = None
 
         try:
+            # 12 Ki Super Attack Name
+            # Locate the div containing 'Super Attack (12 Ki)'
+            super_attack_12_container = driver.find_element(
+                By.XPATH, "//div[contains(@class, 'card-header') and contains(., 'Super Attack (12 Ki)')]/parent::div"
+            )
+
+            # Find the nested div with the class 'd-flex' within the container
+            d_flex_div = super_attack_12_container.find_element(By.XPATH, ".//div[contains(@class, 'd-flex')]")
+
+            # Extract all the text within the 'd-flex' div
+            super_attack_12_text = d_flex_div.text.strip()
+            
+            # Split the text by newline and get the second line
+            lines = super_attack_12_text.split("\n")
+            super_attack_12_name = lines[1] if len(lines) > 1 else ""  # Get the second line if it exists
+            
+            #Strip EZA text
+            if "(Extreme)" in super_attack_12_name:
+                super_attack_12_name = super_attack_12_name.replace(" (Extreme)", "").strip()
+            
+            print(f"12 Ki: {super_attack_12_name}")
+            
             # 12 Ki Super Attack Effect
             super_attack_12_effect = driver.find_element(
                 By.XPATH, "//div[contains(@class, 'card-header') and contains(., 'Super Attack (12 Ki)')]/following-sibling::div[contains(@class, 'card-body')]/p[1]"
@@ -90,12 +116,35 @@ def extract_character_data(state):
             print("Uh oh it broke")
 
         try:
+            # 18 Ki Super Attack Name
+            # Locate the div containing 'Super Attack (18 Ki)'
+            super_attack_18_container = driver.find_element(
+                By.XPATH, "//div[contains(@class, 'card-header') and contains(., 'Super Attack (18 Ki)')]/parent::div"
+            )
+
+            # Find the nested div with the class 'd-flex' within the container
+            d_flex_div = super_attack_18_container.find_element(By.XPATH, ".//div[contains(@class, 'd-flex')]")
+
+            # Extract all the text within the 'd-flex' div
+            super_attack_18_text = d_flex_div.text.strip()
+            
+            # Split the text by newline and get the second line
+            lines = super_attack_18_text.split("\n")
+            super_attack_18_name = lines[1] if len(lines) > 1 else ""  # Get the second line if it exists
+            
+            #Strip EZA text
+            if "(Extreme)" in super_attack_18_name:
+                super_attack_18_name = super_attack_18_name.replace(" (Extreme)", "").strip()
+            
+            print(f"18 Ki: {super_attack_18_name}")
+            
             # 18 Ki Super Attack Effect
             super_attack_18_effect = driver.find_element(
                 By.XPATH, "//div[contains(@class, 'card-header') and contains(., 'Ultra Super Attack (18 Ki)')]/following-sibling::div[contains(@class, 'card-body')]/p[1]"
             ).text.strip()
         except Exception:
             print("")
+            
 
         # Extract Links
         try:
@@ -179,7 +228,7 @@ def extract_character_data(state):
         try:
             # Wait for the release date section(s) to be visible
             # Use a more general XPath to capture all possible release date elements
-            release_dates = WebDriverWait(driver, 10).until(
+            release_dates = WebDriverWait(driver, 0.1).until(
                 EC.presence_of_all_elements_located((By.XPATH, "//*[@id='awakenings']/div[2]//div/p/span"))
             )
             
@@ -224,6 +273,7 @@ def extract_character_data(state):
                     
                     if match:
                         dmg_multiplier = match.group(1)  # Extract only the percentage part
+                        print("Used path number: ", i)
                         break  # Stop once we find the multiplier
                     else:
                         print("No percentage found in the DMG multiplier text.")
@@ -231,6 +281,52 @@ def extract_character_data(state):
                 print(f"No element found for XPath: {i}. ")
                 i += 1
 
+        # LR 12 ki DMG multiplier
+        lr_12ki_dmg_multiplier = None
+        # Function to adjust the XPath by reducing the div number (e.g., from div[6] to div[5])
+        def adjust_xpath_for_18ki(xpath):
+            # Split the XPath by '/div[' to isolate the div elements
+            parts = xpath.split('/div[')
+            
+            # We need to adjust the div in the 5th position (the 5th div element in the XPath)
+            if len(parts) > 5:  # Ensuring there are enough div elements in the XPath to adjust
+                # Get the div number of the 5th div element (index 5 in the list)
+                div_number = int(parts[5].split(']')[0])  # This will give us the 5th div number
+                
+                # Subtract 1 from the div number
+                new_div_number = div_number - 1
+                
+                # Rebuild the XPath with the adjusted div number
+                adjusted_xpath = xpath.replace(f'/div[{div_number}]', f'/div[{new_div_number}]')
+                return adjusted_xpath
+            return xpath  # If there are not enough div elements, return the original XPath
+        
+        if super_attack_18_name:
+            # Get the XPath at index `i` from the list
+            original_xpath = xpath_list[i]
+            
+            # Adjust the XPath for the 5th div element (subtract 1 from the div index)
+            adjusted_xpath = adjust_xpath_for_18ki(original_xpath)
+            
+            # Try to find the LR 12 ki DMG multiplier element using the adjusted XPath
+            try:
+                element = WebDriverWait(driver, 0.1).until(
+                    EC.presence_of_element_located((By.XPATH, adjusted_xpath))
+                )
+                
+                if element:
+                    text = element.text.strip()
+                    
+                    # Extract the percentage (x%) using a regular expression
+                    match = re.search(r"(\d+%)", text)
+                    
+                    if match:
+                        lr_12ki_dmg_multiplier = match.group(1)  # Extract only the percentage part
+                        print(f"LR 12 ki DMG multiplier: {lr_12ki_dmg_multiplier}")
+                    else:
+                        print("No percentage found in the LR 12 ki DMG multiplier text.")
+            except Exception as e:
+                print(f"Error finding LR 12 ki DMG multiplier: {e}")
 
 
         # Save the data for the state
@@ -243,14 +339,17 @@ def extract_character_data(state):
             "Passive Name": passive_name,
             "Passive Skill": passive_skill,
             "Active Skill": active_skill,
+            "Super Attack (12 Ki) Name": super_attack_12_name,
             "Super Attack (12 Ki) Effect": super_attack_12_effect,
-            "Super Attack (18 Ki) Effect": super_attack_18_effect,
-            "Links": ", ".join(link_names),  # Only valid links are added
-            "Categories": ", ".join(category_names),  # Only valid categories are added
+            "Ultra Super Attack (18 Ki) Name": super_attack_18_name,
+            "Ultra Super Attack (18 Ki) Effect": super_attack_18_effect,
+            "Links": ", ".join(link_names),
+            "Categories": ", ".join(category_names),
             "Transformation Condition": transformation_condition,
             "Release Date": release_date,
             "Ki Multiplier": ki_multiplier,
-            "DMG Multiplier": dmg_multiplier
+            "Highest DMG Multiplier": dmg_multiplier,
+            "LR 12 Ki DMG Multiplier": lr_12ki_dmg_multiplier
         })
 
     except Exception:
@@ -397,7 +496,7 @@ try:
                 transformation_link = transformation_link_element.get_attribute("href")
 
                 # Get the transformation condition for the *next* transformation (offset by one index)
-                transformation_condition = "N/A"
+                transformation_condition = None
                 if i < total_transformations - 1:  # Skip condition extraction for the last transformation
                     try:
                         next_condition_element = transformation_items[i + 1].find_element(By.CLASS_NAME, "mb-0")
@@ -418,15 +517,16 @@ try:
                     
                     # Extract data for this transformation
                     extract_character_data("Transformation")
+                    
+                    #Save data
+                    df = pd.DataFrame(character_data)
+                    df.to_csv("dokkan_character_details.csv", index=False)
 
                     # Update the "Transformation Condition" field with the offset condition
                     character_data[-1]["Transformation Condition"] = transformation_condition
 
         except Exception as e:
             print(f"No transformations found or error occurred: ")
-
-
-
 
 
 except KeyboardInterrupt:

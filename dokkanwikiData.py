@@ -44,8 +44,10 @@ def extract_character_data(state):
         # Remove the "(Extreme)" part for EZAs
         if "(Extreme)" in leader_skill:
             leader_skill = leader_skill.replace("(Extreme) ", "").strip()
+        if "(Super Extreme)" in leader_skill:
+            leader_skill = leader_skill.replace("(Super Extreme) ", "").strip()
 
-        # Get Passive Name text (save as passive_name)
+        # Get Passive Name
         passive_name = None
         try:
             # Step 1: Find the first div inside #passive-skill div
@@ -80,8 +82,32 @@ def extract_character_data(state):
         # Super Attack Effects
         super_attack_12_effect = None
         super_attack_18_effect = None
+        super_attack_12_name = None
+        super_attack_18_name = None
 
         try:
+            # 12 Ki Super Attack Name
+            # Locate the div containing 'Super Attack (12 Ki)'
+            super_attack_12_container = driver.find_element(
+                By.XPATH, "//div[contains(@class, 'card-header') and contains(., 'Super Attack (12 Ki)')]/parent::div"
+            )
+
+            # Find the nested div with the class 'd-flex' within the container
+            d_flex_div = super_attack_12_container.find_element(By.XPATH, ".//div[contains(@class, 'd-flex')]")
+
+            # Extract all the text within the 'd-flex' div
+            super_attack_12_text = d_flex_div.text.strip()
+            
+            # Split the text by newline and get the second line
+            lines = super_attack_12_text.split("\n")
+            super_attack_12_name = lines[1] if len(lines) > 1 else ""  # Get the second line if it exists
+            
+            #Strip EZA text
+            if "(Extreme)" in super_attack_12_name:
+                super_attack_12_name = super_attack_12_name.replace(" (Extreme)", "").strip()
+            
+            print(f"12 Ki: {super_attack_12_name}")
+            
             # 12 Ki Super Attack Effect
             super_attack_12_effect = driver.find_element(
                 By.XPATH, "//div[contains(@class, 'card-header') and contains(., 'Super Attack (12 Ki)')]/following-sibling::div[contains(@class, 'card-body')]/p[1]"
@@ -90,12 +116,35 @@ def extract_character_data(state):
             print("Uh oh it broke")
 
         try:
+            # 18 Ki Super Attack Name
+            # Locate the div containing 'Super Attack (18 Ki)'
+            super_attack_18_container = driver.find_element(
+                By.XPATH, "//div[contains(@class, 'card-header') and contains(., 'Super Attack (18 Ki)')]/parent::div"
+            )
+
+            # Find the nested div with the class 'd-flex' within the container
+            d_flex_div = super_attack_18_container.find_element(By.XPATH, ".//div[contains(@class, 'd-flex')]")
+
+            # Extract all the text within the 'd-flex' div
+            super_attack_18_text = d_flex_div.text.strip()
+            
+            # Split the text by newline and get the second line
+            lines = super_attack_18_text.split("\n")
+            super_attack_18_name = lines[1] if len(lines) > 1 else ""  # Get the second line if it exists
+            
+            #Strip EZA text
+            if "(Extreme)" in super_attack_18_name:
+                super_attack_18_name = super_attack_18_name.replace(" (Extreme)", "").strip()
+            
+            print(f"18 Ki: {super_attack_18_name}")
+            
             # 18 Ki Super Attack Effect
             super_attack_18_effect = driver.find_element(
                 By.XPATH, "//div[contains(@class, 'card-header') and contains(., 'Ultra Super Attack (18 Ki)')]/following-sibling::div[contains(@class, 'card-body')]/p[1]"
             ).text.strip()
         except Exception:
             print("")
+            
 
         # Extract Links
         try:
@@ -243,8 +292,10 @@ def extract_character_data(state):
             "Passive Name": passive_name,
             "Passive Skill": passive_skill,
             "Active Skill": active_skill,
+            "Super Attack (12 Ki) Name": super_attack_12_name,
             "Super Attack (12 Ki) Effect": super_attack_12_effect,
-            "Super Attack (18 Ki) Effect": super_attack_18_effect,
+            "Ultra Super Attack (18 Ki) Name": super_attack_18_name,
+            "Ultra Super Attack (18 Ki) Effect": super_attack_18_effect,
             "Links": ", ".join(link_names),  # Only valid links are added
             "Categories": ", ".join(category_names),  # Only valid categories are added
             "Transformation Condition": transformation_condition,
@@ -292,7 +343,7 @@ try:
     total_pages = get_total_pages()
     print(f"Total pages found: {total_pages}")
 
-    for page in range(1, total_pages + 1):  # Use the dynamic total page count
+    for page in range(1, 2):  # Use the dynamic total page count
         if page in processed_pages:
             print(f"Skipping already processed page {page}.")
             continue  # Skip already processed pages
@@ -345,7 +396,7 @@ try:
         
         #Save data
         df = pd.DataFrame(character_data)
-        df.to_csv("dokkan_character_details_test.csv", index=False)
+        df.to_csv("dokkan_character_details.csv", index=False)
 
 
         # Handle Transformations
@@ -385,12 +436,16 @@ try:
                     driver.get(transformation_link)
                     
                     # Wait for the transformation page to load
-                    WebDriverWait(driver, 10).until(
+                    WebDriverWait(driver, 1).until(
                         EC.presence_of_element_located((By.TAG_NAME, "h1"))
                     )
                     
                     # Extract data for this transformation
                     extract_character_data("Transformation")
+                    
+                    #Save data
+                    df = pd.DataFrame(character_data)
+                    df.to_csv("dokkan_character_details.csv", index=False)
 
                     # Update the "Transformation Condition" field with the offset condition
                     character_data[-1]["Transformation Condition"] = transformation_condition

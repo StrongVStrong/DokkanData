@@ -70,6 +70,9 @@ def process_active_skill(active_skill):
     if " Condition: " in active_skill:
         active_name, condition = active_skill.split(" Condition: ", 1)
         return active_name.strip(), condition.strip()
+    elif "Condition:" in active_skill:
+        active_skill = active_skill.replace("Condition:", "").strip()
+        return active_skill
     else:
         # If no " Condition: ", treat the entire value as the active name
         return active_skill, None

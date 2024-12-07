@@ -3,8 +3,8 @@ import re
 import pandas as pd
 
 # Input and output file paths
-input_file = "dokkan_character_details_test.csv"
-output_file = "final_datatest.csv"
+input_file = "dokkan_character_details.csv"
+output_file = "final_data.csv"
 
 # Step 1: Data Input & Initial Processing
 with open(input_file, 'r') as infile:
@@ -92,5 +92,5 @@ df = df[columns]
 # Save the final DataFrame to the output file
 df.to_csv(output_file, index=False)
 
-print("Data has been processed and saved to 'final_datatest.csv'")
+print("Data has been processed and saved to 'final_data.csv'")
 

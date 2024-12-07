@@ -4,7 +4,7 @@ import pandas as pd
 
 # Input and output file paths
 input_file = "dokkan_character_details_test.csv"
-output_file = "final_datax.csv"
+output_file = "final_datatest.csv"
 
 # Step 1: Data Input & Initial Processing
 with open(input_file, 'r') as infile:
@@ -54,7 +54,37 @@ for index, row in df.iterrows():
     elif row['State'] == 'Transformation' and last_base_release_date is not None:
         df.at[index, 'Release Date'] = last_base_release_date
 
+# Step 5: Process Active Skill and Extract Active Name
+def process_active_skill(active_skill):
+    if pd.isna(active_skill) or not active_skill.strip():
+        return None, None  # Handle missing Active Skill by returning None for both
 
+    # Remove the "Active Skill " prefix
+    active_skill = active_skill.replace("Active Skill ", "", 1).strip()
+    
+    # Remove text starting from "Animation: "
+    if "Animation: " in active_skill:
+        active_skill = active_skill.split("Animation: ")[0].strip()
+    
+    # Split at the first occurrence of " Condition: "
+    if " Condition: " in active_skill:
+        active_name, condition = active_skill.split(" Condition: ", 1)
+        return active_name.strip(), condition.strip()
+    else:
+        # If no " Condition: ", treat the entire value as the active name
+        return active_skill, None
+
+# Apply the processing function to split the column
+df[['Active Name', 'Active Skill']] = df['Active Skill'].apply(
+    lambda x: pd.Series(process_active_skill(x))
+)
+
+# Ensure "Active Name" appears before "Active Skill"
+columns = df.columns.tolist()
+active_skill_index = columns.index('Active Skill')
+columns.insert(active_skill_index, 'Active Name')  # Insert "Active Name" before "Active Skill"
+columns.pop(columns.index('Active Name', active_skill_index + 1))  # Remove duplicate entry of "Active Name"
+df = df[columns]
 
 # Save the final DataFrame to the output file
 df.to_csv(output_file, index=False)

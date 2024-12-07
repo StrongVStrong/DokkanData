@@ -3,7 +3,7 @@ import re
 import pandas as pd
 
 # Input and output file paths
-input_file = "dokkan_character_details.csv"
+input_file = "dokkan_character_details_test.csv"
 output_file = "final_datax.csv"
 
 # Step 1: Data Input & Initial Processing

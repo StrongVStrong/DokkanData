@@ -5,6 +5,7 @@ from selenium.webdriver.support import expected_conditions as EC
 import pandas as pd
 import json
 import re
+from selenium.common.exceptions import NoSuchElementException
 
 
 # Selenium setup
@@ -30,24 +31,55 @@ def extract_character_data(state):
     try:
         # Unit Name and Subname
         name = driver.find_element(By.TAG_NAME, "h1").text.strip()
-        subname = driver.find_element(By.TAG_NAME, "h3").text.strip() if driver.find_elements(By.TAG_NAME, "h3") else "N/A"
+        subname = driver.find_element(By.TAG_NAME, "h3").text.strip() if driver.find_elements(By.TAG_NAME, "h3") else None
+        print("Character: ", name, subname)
 
         # Unit Stats
         stats_table = driver.find_elements(By.CLASS_NAME, "table-striped")
-        unit_stats = [row.text.replace("\n", " ") for row in stats_table[0].find_elements(By.TAG_NAME, "tr")] if stats_table else ["N/A"]
+        unit_stats = [row.text.replace("\n", " ") for row in stats_table[0].find_elements(By.TAG_NAME, "tr")] if stats_table else [None]
 
         # Leader Skill
-        leader_skill = driver.find_element(By.ID, "leader-skill").text.replace("\n", " ").strip() if driver.find_elements(By.ID, "leader-skill") else "N/A"
+        leader_skill_elem = driver.find_element(By.ID, "leader-skill").text.replace("\n", " ").strip() if driver.find_elements(By.ID, "leader-skill") else None
+        leader_skill = leader_skill_elem.replace("Leader Skill ", "").strip()
+        # Remove the "(Extreme)" part for EZAs
+        if "(Extreme)" in leader_skill:
+            leader_skill = leader_skill.replace("(Extreme) ", "").strip()
 
-        # Passive Skill
-        passive_skill = driver.find_element(By.ID, "passive-skill").text.replace("\n", " ").strip() if driver.find_elements(By.ID, "passive-skill") else "N/A"
+        # Get Passive Name text (save as passive_name)
+        passive_name = None
+        try:
+            # Step 1: Find the first div inside #passive-skill div
+            passive_skill_div = driver.find_element(By.ID, "passive-skill")
+
+            first_div = passive_skill_div.find_element(By.XPATH, "div/div[1]")
+
+            # Step 2: Extract all the text from this div
+            div_text = first_div.text.strip()
+            
+            # Step 3: Get the second line (actual passive name)
+            lines = div_text.split("\n")  # Split text by new lines
+            if len(lines) > 1:
+                passive_name = lines[1].strip()  # Get the second line
+                print("Passive Skill:", passive_name)
+            else:
+                passive_name = None
+                
+        except Exception as e:
+            print(f"An error occurred")
+
+        # Get Passive Skills text
+        passive_skill = None
+        passive_skills_elements = driver.find_elements(By.XPATH, "//*[@id='passive-skill']/div/div[2]/ul/li")
+        if not passive_skills_elements:
+            print("No <li> elements found for Passive Skills.")
+        passive_skill = ", ".join([element.text.strip() for element in passive_skills_elements]) if passive_skills_elements else None
 
         # Active Skill
-        active_skill = driver.find_element(By.ID, "active-skill").text.replace("\n", " ").strip() if driver.find_elements(By.ID, "active-skill") else "N/A"
+        active_skill = driver.find_element(By.ID, "active-skill").text.replace("\n", " ").strip() if driver.find_elements(By.ID, "active-skill") else None
 
         # Super Attack Effects
-        super_attack_12_effect = "N/A"
-        super_attack_18_effect = "N/A"
+        super_attack_12_effect = None
+        super_attack_18_effect = None
 
         try:
             # 12 Ki Super Attack Effect
@@ -55,7 +87,7 @@ def extract_character_data(state):
                 By.XPATH, "//div[contains(@class, 'card-header') and contains(., 'Super Attack (12 Ki)')]/following-sibling::div[contains(@class, 'card-body')]/p[1]"
             ).text.strip()
         except Exception:
-            super_attack_12_effect = "N/A"
+            print("Uh oh it broke")
 
         try:
             # 18 Ki Super Attack Effect
@@ -63,7 +95,7 @@ def extract_character_data(state):
                 By.XPATH, "//div[contains(@class, 'card-header') and contains(., 'Ultra Super Attack (18 Ki)')]/following-sibling::div[contains(@class, 'card-body')]/p[1]"
             ).text.strip()
         except Exception:
-            super_attack_18_effect = "N/A"
+            print("")
 
         # Extract Links
         try:
@@ -76,9 +108,8 @@ def extract_character_data(state):
             # Extract the text from nested `div.text` inside each link element
             link_names = [link.find_element(By.CLASS_NAME, "text").text.strip() for link in link_elements]
             
-            print(f"Extracted Links: {link_names}")
-        except Exception as e:
-            print(f"Error extracting links: ")
+        except Exception:
+            print("")
 
         # Extract Categories
         try:
@@ -97,14 +128,12 @@ def extract_character_data(state):
                 cat.find_element(By.TAG_NAME, "img").get_attribute("title")
                 for cat in category_elements
             ]
-            
-            print(f"Extracted Categories: {category_names}")
-        except Exception as e:
-            print(f"Error extracting categories: ")
+        except Exception:
+            print("")
 
 
         # Extract Transformation Condition
-        transformation_condition = []
+        transformation_condition = None
         try:
             # Locate the container with id="transformations"
             transformations_section = driver.find_element(By.ID, "transformations")
@@ -113,15 +142,11 @@ def extract_character_data(state):
             transformation_condition = transformations_section.find_element(By.CLASS_NAME, "mb-0").text.strip()
             
             print(f"Extracted Transformation Condition: {transformation_condition}")
-        except Exception as e:
-            print(f"Error extracting transformation condition: ")
+        except Exception:
+            print("")
 
-        ki_multiplier = "N/A"
+        ki_multiplier = None
         try:
-            # Wait for the stats section to load
-            stats_section = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.ID, "stats"))
-            )
             
             # Try to find td[2] and td[1] at the same time, without waiting too long
             elements = driver.find_elements(By.XPATH, "//*[@id='stats']/div[2]/div[2]/table/tbody/tr[2]/td[2]") + \
@@ -134,27 +159,23 @@ def extract_character_data(state):
                 # Get the text from the located element
                 text = element.text.strip()
                 
-                # Debugging: Print the found text
-                print(f"Found text: {text}")
-                
                 # Extract percentage (e.g., "150%" or "200%") using a regular expression
                 match = re.search(r"(\d+%)", text)
                 
                 if match:
                     ki_multiplier = match.group(1)  # Extract only the percentage part
-                    print(f"Extracted Ki Multiplier: {ki_multiplier}")
                 else:
                     print("No percentage found in the text.")
             else:
                 print("No relevant td found.")
 
-        except Exception as e:
-            print(f"Error extracting Ki Multiplier: {e}")
+        except Exception:
+            print("")
 
 
         
         # Extract the most recent Release Date
-        release_date = "N/A"
+        release_date = None
         try:
             # Wait for the release date section(s) to be visible
             # Use a more general XPath to capture all possible release date elements
@@ -165,85 +186,50 @@ def extract_character_data(state):
             # Retrieve the text of the last release date found (furthest down)
             if release_dates:
                 release_date = release_dates[-1].text.strip()  # Take the last one (furthest down)
-                print(f"Extracted Release Date: {release_date}")
             else:
                 print("No release dates found.")
-        except Exception as e:
-            print(f"Error extracting Release Date: {e}")
+        except Exception:
+            print("")
 
-
-        # Function to extract damage multiplier
-        def extract_dmg_multiplier(driver):
-            dmg_multiplier = "N/A"
-            
-            # List of XPaths to check, starting with the most specific and falling back to the others
-            xpath_list = [
-                "//*[@id='app']/div[2]/div[2]/div[2]/div[4]/div[6]/div/div[2]/table/tbody/tr/td[5]",
-                "//*[@id='app']/div[2]/div[2]/div[2]/div[4]/div[5]/div/div[2]/table/tbody/tr/td[4]",
-                "//*[@id='app']/div[2]/div[2]/div[2]/div[4]/div[7]/div/div[2]/table/tbody/tr/td[4]",
-                "//*[@id='app']/div[2]/div[2]/div[2]/div[4]/div[7]/div/div[2]/table/tbody/tr/td[3]",
-                "//*[@id='app']/div[2]/div[2]/div[2]/div[4]/div[5]/div/div[2]/table/tbody/tr/td[3]",
-                "//*[@id='app']/div[3]/div[2]/div[2]/div[4]/div[4]/div/div[2]/table/tbody/tr/td[3]",
-                "//*[@id='app']/div[2]/div[2]/div[2]/div[4]/div[6]/div/div[2]/table/tbody/tr/td[3]",
-                "//*[@id='app']/div[2]/div[2]/div[2]/div[4]/div[6]/div/div[2]/table/tbody/tr/td[3]",
-                "//*[@id='app']/div[2]/div[2]/div[2]/div[4]/div[6]/div/div[2]/table/tbody/tr/td[4]"
+        #Damage Multiplier
+        dmg_multiplier = None
+        # List of XPaths to check, starting with the most specific and falling back to the others
+        xpath_list = [
+            "//*[@id='app']/div[2]/div[2]/div[2]/div[4]/div[6]/div/div[2]/table/tbody/tr/td[5]",
+            "//*[@id='app']/div[2]/div[2]/div[2]/div[4]/div[5]/div/div[2]/table/tbody/tr/td[4]",
+            "//*[@id='app']/div[2]/div[2]/div[2]/div[4]/div[7]/div/div[2]/table/tbody/tr/td[4]",
+            "//*[@id='app']/div[2]/div[2]/div[2]/div[4]/div[7]/div/div[2]/table/tbody/tr/td[3]",
+            "//*[@id='app']/div[2]/div[2]/div[2]/div[4]/div[5]/div/div[2]/table/tbody/tr/td[3]",
+            "//*[@id='app']/div[3]/div[2]/div[2]/div[4]/div[4]/div/div[2]/table/tbody/tr/td[3]",
+            "//*[@id='app']/div[2]/div[2]/div[2]/div[4]/div[6]/div/div[2]/table/tbody/tr/td[3]",
+            "//*[@id='app']/div[2]/div[2]/div[2]/div[4]/div[6]/div/div[2]/table/tbody/tr/td[3]",
+            "//*[@id='app']/div[2]/div[2]/div[2]/div[4]/div[6]/div/div[2]/table/tbody/tr/td[4]"
+        ]
+        
+        # Try to find the DMG Multiplier element using the list of XPaths
+        i=0
+        for xpath in xpath_list:
+            print(f"Checking XPath: {i}")  # Debugging: print the current XPath being checked
+            try:
+                # Find the element using the XPath
+                element = WebDriverWait(driver, 0.1).until(
+                    EC.presence_of_element_located((By.XPATH, xpath))
+                )
                 
-            ]
-            
-            # Try to find the DMG Multiplier element using the list of XPaths
-            for xpath in xpath_list:
-                print(f"Checking XPath: {xpath}")  # Debugging: print the current XPath being checked
-                
-                try:
-                    # Find the element using the XPath
-                    element = WebDriverWait(driver, 0.1).until(
-                        EC.presence_of_element_located((By.XPATH, xpath))
-                    )
+                if element:
+                    text = element.text.strip()
                     
-                    if element:
-                        text = element.text.strip()
-                        print(f"Found text: {text}")  # Debugging: print the found text
-                        
-                        # Extract the percentage (x%) using a regular expression
-                        match = re.search(r"(\d+%)", text)
-                        
-                        if match:
-                            dmg_multiplier = match.group(1)  # Extract only the percentage part
-                            print(f"Extracted DMG Multiplier: {dmg_multiplier}")
-                            break  # Stop once we find the multiplier
-                        else:
-                            print("No percentage found in the DMG multiplier text.")
-                except Exception as e:
-                    print(f"No element found for XPath: {xpath}. Error: {e}")
-            
-            # If no DMG multiplier was found
-            if dmg_multiplier == "N/A":
-                print("No DMG multiplier element found.")
-            
-            return dmg_multiplier
-
-
-        # Main script execution
-        def main(driver):
-            
-            # Extract DMG Multiplier
-            dmg_multiplier = extract_dmg_multiplier(driver)
-            
-            # Return the results
-            return release_date, dmg_multiplier
-
-
-        # Example usage (assuming you have a driver set up)
-        # Assuming 'driver' is already initialized, for example:
-        # driver = webdriver.Chrome()
-
-        release_date, dmg_multiplier = main(driver)
-        print(f"Release Date: {release_date}")
-        print(f"Damage Multiplier: {dmg_multiplier}")
-
-
-
-
+                    # Extract the percentage (x%) using a regular expression
+                    match = re.search(r"(\d+%)", text)
+                    
+                    if match:
+                        dmg_multiplier = match.group(1)  # Extract only the percentage part
+                        break  # Stop once we find the multiplier
+                    else:
+                        print("No percentage found in the DMG multiplier text.")
+            except Exception:
+                print(f"No element found for XPath: {i}. ")
+                i += 1
 
 
 
@@ -254,6 +240,7 @@ def extract_character_data(state):
             "Subname": subname,
             "Stats 55% 100%": " | ".join(unit_stats),  # Flatten stats into a single string
             "Leader Skill": leader_skill,
+            "Passive Name": passive_name,
             "Passive Skill": passive_skill,
             "Active Skill": active_skill,
             "Super Attack (12 Ki) Effect": super_attack_12_effect,
@@ -266,8 +253,8 @@ def extract_character_data(state):
             "DMG Multiplier": dmg_multiplier
         })
 
-    except Exception as e:
-        print(f"Error extracting character data for {state}: {e}")
+    except Exception:
+        print(f"Error extracting character data process halted: ")
 
         
 # Function to determine the total number of pages dynamically
@@ -291,7 +278,7 @@ def get_total_pages():
         max_page = max([int(page.text) for page in page_numbers if page.text.isdigit()])
         return max_page
     except Exception as e:
-        print(f"Error determining the total number of pages: {e}")
+        print(f"Error determining the total number of pages: ")
         return 1  # Default to 1 if unable to fetch the total page count
 
 
@@ -333,7 +320,7 @@ try:
                 character_links.append(link)  # Add unique links
                 print(f"Found character: {link}")  # Log unique links
 
-        # If fewer cards are found, print a note (optional for debugging)
+        # If fewer cards are found, print a note
         if len(cards) < 32:
             print(f"Note: Page {page} has fewer than 32 cards. Processing all found cards.")
 
@@ -346,7 +333,7 @@ try:
     processed_links = set()
 
     # Flag to indicate whether to start processing
-    start_link = "https://dokkan.wiki/cards/1017411"
+    start_link = "https://dokkan.wiki/cards/1016631"
     start_processing = False
 
     # Step 2: Visit Each Character Page
@@ -442,13 +429,11 @@ try:
 
 
 
-
 except KeyboardInterrupt:
     print("Force stop detected. Saving progress...")
 except Exception as e:
-    print(f"Error during scraping: {e}")
+    print(f"Error during scraping: ")
 
 
 # Quit the Driver
 driver.quit()
-

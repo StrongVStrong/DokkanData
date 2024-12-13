@@ -426,9 +426,9 @@ def update_csv_if_needed(new_character_data, duplicate_check):
             print(f"Invalid release date format in CSV for {duplicate_check['Subname'].values[0]}. Skipping date comparison.")
             return False
 
-    # If the new release date is greater, update the CSV by removing the old row and adding new data
+    # If the new release date is greater, update the old character data
     if new_release_date > existing_release_date:
-        print(f"Replacing old entry for {new_character_data['Subname']} as new release date is greater.")
+        print(f"Updating old entry for {new_character_data['Subname']} as new release date is greater.")
         
         return True  # Indicating the row has been updated and added
 

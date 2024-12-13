@@ -444,7 +444,7 @@ try:
         
         #Save data
         df = pd.DataFrame(character_data)
-        df.to_csv("dokkan_character_details.csv", index=False)
+        df.to_csv("dokkan_character_details_2.csv", index=False)
 
 
         # Handle Transformations
@@ -493,7 +493,7 @@ try:
                     
                     #Save data
                     df = pd.DataFrame(character_data)
-                    df.to_csv("dokkan_character_details.csv", index=False)
+                    df.to_csv("dokkan_character_details_2.csv", index=False)
 
                     # Update the "Transformation Condition" field with the offset condition
                     character_data[-1]["Transformation Condition"] = transformation_condition

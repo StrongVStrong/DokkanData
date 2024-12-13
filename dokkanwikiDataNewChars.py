@@ -14,6 +14,7 @@ driver = webdriver.Chrome()  # Ensure ChromeDriver is installed and in PATH
 # Data storage
 character_data = []
 character_links = []
+all_character_data = []
 test_links = [
     "https://dokkan.wiki/cards/1007471",
     "https://dokkan.wiki/cards/1014761"
@@ -380,6 +381,25 @@ def get_total_pages():
         print(f"Error determining the total number of pages: ")
         return 1  # Default to 1 if unable to fetch the total page count
 
+# Load the existing CSV file to check for duplicates
+csv_file = "dokkan_character_details_test.csv"
+try:
+    existing_df = pd.read_csv(csv_file)
+    print(f"Loaded existing CSV with {len(existing_df)} rows.")
+except FileNotFoundError:
+    existing_df = pd.DataFrame()
+    print("No existing CSV found. Starting fresh.")
+
+# Function to check if the character data already exists based on the 'subname' column
+def is_duplicate(character_data):
+    subname = character_data.get('Subname')  # Access 'Subname' directly from the dictionary
+    print("Subname: ", subname)
+    if existing_df.empty:
+        return False
+    if not subname:
+        print("no subname")
+    # Check if any row in the existing_df has the same subname
+    return existing_df[existing_df['Subname'] == subname].shape[0] > 0
 
 # Base URL for pagination
 base_url = "https://dokkan.wiki/cards#!(p:{})"
@@ -391,7 +411,7 @@ try:
     total_pages = get_total_pages()
     print(f"Total pages found: {total_pages}")
 
-    for page in range(1, total_pages + 1):  # Use the dynamic total page count
+    for page in range(1, 2):  # Use the dynamic total page count
         if page in processed_pages:
             print(f"Skipping already processed page {page}.")
             continue  # Skip already processed pages
@@ -428,31 +448,11 @@ try:
 
     print(f"Collected {len(character_links)} unique character links.")
     
-    # Set to track processed character links to avoid duplicates
-    processed_links = set()
-
-    # Flag to indicate whether to start processing
-    start_link = "https://dokkan.wiki/cards/1016631"
-    start_processing = False
-
     # Step 2: Visit Each Character Page
     total_characters = len(character_links)
+    all_character_data = []  # List to store all character data to append to the CSV at the end
 
     for current_index, link in enumerate(character_links, start=1):
-        # If we haven't reached the start link, skip to the next link
-        if not start_processing:
-            if link == start_link:
-                print(f"Found start link: {link}. Starting from here.")
-                start_processing = True  # Start processing from this link
-            else:
-                continue  # Skip the link until we find the start link
-
-        # Skip if the link has already been processed
-        if link in processed_links:
-            print(f"Skipping already processed character: {link}")
-            continue  # Skip already processed links
-
-        # Process the character
         print(f"\nProcessing character {current_index}/{total_characters}: {link}")
         driver.get(link)
 
@@ -464,17 +464,27 @@ try:
         # Extract Base Data
         extract_character_data("Base")
 
-        # Save data (append to CSV only if not processed before)
-        df = pd.DataFrame(character_data)
-        df.to_csv("dokkan_character_details_test.csv", mode='a', header=not bool(character_data), index=False)
+        # Check for duplicates before adding the character data
+        if is_duplicate(character_data[-1]):
+            print(f"Character {character_data[-1]['Subname']} already exists. Skipping.")
+            if all_character_data:
+                # Create a DataFrame from the collected data
+                df = pd.DataFrame(all_character_data)
+                
+                # Save to CSV (append mode is used to prevent overwriting)
+                df.to_csv("dokkan_character_details_test.csv", mode='a', header=False, index=False)
+                print(f"All data successfully saved to 'dokkan_character_details_test.csv'.")
+            else:
+                print("No data to save.")
+            driver.quit()
+            break
+        else:
+            print("Not a duplicate. Continuing...")
 
-        # Mark this character link as processed
-        processed_links.add(link)
+        # Add the character data to the list (instead of writing to CSV immediately)
+        all_character_data.append(character_data[-1]) # Assuming character_data is a list of dicts
 
-        # Clear character data for next character to avoid duplication
-        character_data.clear()  # This ensures the next character data doesn't get appended to the same list
-
-        # Handle Transformations (same as before)
+        # Handle Transformations
         try:
             # Locate the transformations section by its ID
             transformations_section = driver.find_element(By.ID, "transformations")
@@ -511,28 +521,30 @@ try:
                     driver.get(transformation_link)
                     
                     # Wait for the transformation page to load
-                    WebDriverWait(driver, 10).until(
+                    WebDriverWait(driver, 1).until(
                         EC.presence_of_element_located((By.TAG_NAME, "h1"))
                     )
                     
                     # Extract data for this transformation
                     extract_character_data("Transformation")
                     
-                    #Save data
-                    df = pd.DataFrame(character_data)
-                    df.to_csv("dokkan_character_details.csv", index=False)
+
+                    # Add the transformation data to the list
+                    all_character_data.append(character_data[-1])
 
                     # Update the "Transformation Condition" field with the offset condition
                     character_data[-1]["Transformation Condition"] = transformation_condition
 
         except Exception as e:
-            print(f"No transformations found or error occurred: ")
+            print(f"No transformations for this character")
+
+
 
 
 except KeyboardInterrupt:
     print("Force stop detected. Saving progress...")
 except Exception as e:
-    print(f"Error during scraping: ")
+    print(f"Error during scraping: {e}")
 
 
 # Quit the Driver

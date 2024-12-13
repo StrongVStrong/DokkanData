@@ -6,6 +6,7 @@ import pandas as pd
 import json
 import re
 from selenium.common.exceptions import NoSuchElementException
+from datetime import datetime
 
 
 # Selenium setup
@@ -395,11 +396,50 @@ def is_duplicate(character_data):
     subname = character_data.get('Subname')  # Access 'Subname' directly from the dictionary
     print("Subname: ", subname)
     if existing_df.empty:
+        print("Existing DataFrame is empty.")
         return False
     if not subname:
         print("no subname")
-    # Check if any row in the existing_df has the same subname
-    return existing_df[existing_df['Subname'] == subname].shape[0] > 0
+    # Check if any row in the existing_df has the same 'subname'
+    duplicate_check = existing_df[existing_df['Subname'] == subname]
+    print(f"Found {duplicate_check.shape[0]} duplicates for subname '{subname}'.")
+
+    return duplicate_check.shape[0] > 0, duplicate_check
+
+# Function to compare and update rows if release date of the new character is greater
+def update_csv_if_needed(new_character_data, duplicate_check):
+    # Convert release dates to datetime objects for comparison
+    new_release_date = new_character_data.get('Release Date')
+    if new_release_date:
+        try:
+            new_release_date = datetime.strptime(new_release_date, '%b %d, %Y')  # Example format: 'Dec 13, 2024'
+        except ValueError:
+            print(f"Invalid release date format for {new_character_data['Subname']}. Skipping date comparison.")
+            return False
+
+    # Check the release date of the duplicate (existing) character in CSV
+    existing_release_date = duplicate_check['Release Date'].values[0]  # Assuming the release date is in the first row of duplicate_check
+    if existing_release_date:
+        try:
+            existing_release_date = datetime.strptime(existing_release_date, '%b %d, %Y')  # Example format: 'Dec 13, 2024'
+        except ValueError:
+            print(f"Invalid release date format in CSV for {duplicate_check['Subname'].values[0]}. Skipping date comparison.")
+            return False
+
+    # If the new release date is greater, update the CSV by removing the old row and adding new data
+    if new_release_date > existing_release_date:
+        print(f"Replacing old entry for {new_character_data['Subname']} as new release date is greater.")
+        
+        return True  # Indicating the row has been updated and added
+
+    elif new_release_date == existing_release_date:
+        print(f"Release date for {new_character_data['Subname']} is the same as the existing one. Skipping update.")
+        return False  # Skip adding this entry again if the release date is the same
+
+    else:
+        print(f"New release date for {new_character_data['Subname']} is not greater than the existing one. Skipping update.")
+        return False  # Do nothing if the new release date is not greater
+    
 
 # Base URL for pagination
 base_url = "https://dokkan.wiki/cards#!(p:{})"
@@ -465,25 +505,25 @@ try:
         extract_character_data("Base")
 
         # Check for duplicates before adding the character data
-        if is_duplicate(character_data[-1]):
-            print(f"Character {character_data[-1]['Subname']} already exists. Skipping.")
-            if all_character_data:
-                # Create a DataFrame from the collected data
-                df = pd.DataFrame(all_character_data)
-                
-                # Save to CSV (append mode is used to prevent overwriting)
-                df.to_csv("dokkan_character_details_test.csv", mode='a', header=False, index=False)
-                print(f"All data successfully saved to 'dokkan_character_details_test.csv'.")
-            else:
-                print("No data to save.")
-            driver.quit()
-            break
+        is_duplicate_flag, duplicate_check = is_duplicate(character_data[-1])
+        
+        if is_duplicate_flag:
+            print(f"Character {character_data[-1]['Subname']} already exists. Checking release date...")
+
+            # If release date is greater, remove old entry and add to new list
+            if not update_csv_if_needed(character_data[-1], duplicate_check):
+                # If the release date is the same, stop processing
+                break
+            
+            # If the entry is updated, append the new data to all_character_data
+            all_character_data.append(character_data[-1])
+
         else:
             print("Not a duplicate. Continuing...")
-
-        # Add the character data to the list (instead of writing to CSV immediately)
-        all_character_data.append(character_data[-1]) # Assuming character_data is a list of dicts
-
+            # Add the character data to the list (instead of writing to CSV immediately)
+            all_character_data.append(character_data[-1])  # Assuming character_data is a list of dicts
+        
+        
         # Handle Transformations
         try:
             # Locate the transformations section by its ID
@@ -537,7 +577,27 @@ try:
 
         except Exception as e:
             print(f"No transformations for this character")
+    # After all characters and transformations are processed, save the data to the CSV
+    if all_character_data:
+        
+        # Create a DataFrame from the collected data
+        new_data_df = pd.DataFrame(all_character_data)
+        # Read the existing CSV into a DataFrame
+        try:
+            existing_df = pd.read_csv("dokkan_character_details_test.csv")
+            print("Loaded existing CSV.")
+        except FileNotFoundError:
+            existing_df = pd.DataFrame()  # If file doesn't exist, create an empty DataFrame
+            print("No existing CSV found. Creating a new one.")
 
+        # Concatenate the new data on top of the existing data
+        updated_df = pd.concat([new_data_df, existing_df], ignore_index=True)
+
+        # Save the updated DataFrame back to the CSV (this will write it with new data on top)
+        updated_df.to_csv("dokkan_character_details_test.csv", index=False)
+        print(f"All data successfully saved to 'dokkan_character_details_test.csv'.")
+    else:
+        print("No data to save.")
 
 
 

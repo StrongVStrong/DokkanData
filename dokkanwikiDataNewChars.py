@@ -383,7 +383,7 @@ def get_total_pages():
         return 1  # Default to 1 if unable to fetch the total page count
 
 # Load the existing CSV file to check for duplicates
-csv_file = "dokkan_character_details_test.csv"
+csv_file = "dokkan_character_details.csv"
 try:
     existing_df = pd.read_csv(csv_file)
     print(f"Loaded existing CSV with {len(existing_df)} rows.")
@@ -451,7 +451,7 @@ try:
     total_pages = get_total_pages()
     print(f"Total pages found: {total_pages}")
 
-    for page in range(1, 2):  # Use the dynamic total page count
+    for page in range(1, total_pages + 1):  # Use the dynamic total page count
         if page in processed_pages:
             print(f"Skipping already processed page {page}.")
             continue  # Skip already processed pages
@@ -584,7 +584,7 @@ try:
         new_data_df = pd.DataFrame(all_character_data)
         # Read the existing CSV into a DataFrame
         try:
-            existing_df = pd.read_csv("dokkan_character_details_test.csv")
+            existing_df = pd.read_csv("dokkan_character_details.csv")
             print("Loaded existing CSV.")
         except FileNotFoundError:
             existing_df = pd.DataFrame()  # If file doesn't exist, create an empty DataFrame
@@ -594,8 +594,8 @@ try:
         updated_df = pd.concat([new_data_df, existing_df], ignore_index=True)
 
         # Save the updated DataFrame back to the CSV (this will write it with new data on top)
-        updated_df.to_csv("dokkan_character_details_test.csv", index=False)
-        print(f"All data successfully saved to 'dokkan_character_details_test.csv'.")
+        updated_df.to_csv("dokkan_character_details.csv", index=False)
+        print(f"All data successfully saved to 'dokkan_character_details.csv'.")
     else:
         print("No data to save.")
 

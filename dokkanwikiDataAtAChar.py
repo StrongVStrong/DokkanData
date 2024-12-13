@@ -466,7 +466,7 @@ try:
 
         # Save data (append to CSV only if not processed before)
         df = pd.DataFrame(character_data)
-        df.to_csv("dokkan_character_details_test.csv", mode='a', header=not bool(character_data), index=False)
+        df.to_csv("dokkan_character_details.csv", mode='a', header=not bool(character_data), index=False)
 
         # Mark this character link as processed
         processed_links.add(link)

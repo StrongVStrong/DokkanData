@@ -5,7 +5,6 @@ from selenium.webdriver.support import expected_conditions as EC
 import pandas as pd
 import json
 import re
-from selenium.common.exceptions import NoSuchElementException
 
 
 # Selenium setup
@@ -33,7 +32,7 @@ def extract_character_data(state):
         name = driver.find_element(By.TAG_NAME, "h1").text.strip()
         subname = driver.find_element(By.TAG_NAME, "h3").text.strip() if driver.find_elements(By.TAG_NAME, "h3") else None
         print("Character: ", name, subname)
-
+        
         # Unit Stats
         stats_table = driver.find_elements(By.CLASS_NAME, "table-striped")
         unit_stats = [row.text.replace("\n", " ") for row in stats_table[0].find_elements(By.TAG_NAME, "tr")] if stats_table else [None]
@@ -227,7 +226,6 @@ def extract_character_data(state):
         release_date = None
         try:
             # Wait for the release date section(s) to be visible
-            # Use a more general XPath to capture all possible release date elements
             release_dates = WebDriverWait(driver, 0.1).until(
                 EC.presence_of_all_elements_located((By.XPATH, "//*[@id='awakenings']/div[2]//div/p/span"))
             )
@@ -242,7 +240,7 @@ def extract_character_data(state):
 
         #Damage Multiplier
         dmg_multiplier = None
-        # List of XPaths to check, starting with the most specific and falling back to the others
+        # List of XPaths to check
         xpath_list = [
             "//*[@id='app']/div[2]/div[2]/div[2]/div[4]/div[6]/div/div[2]/table/tbody/tr/td[5]",
             "//*[@id='app']/div[2]/div[2]/div[2]/div[4]/div[5]/div/div[2]/table/tbody/tr/td[4]",

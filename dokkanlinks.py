@@ -25,7 +25,7 @@ try:
         driver.get(url)
         time.sleep(2)  # Wait for the page to load fully
         
-        # Extract the name (e.g., "Bombardment")
+        # Extract the name
         try:
             name_element = driver.find_element(By.CSS_SELECTOR, "div.dokkan-link-wrapper div.text")
             name = name_element.text.strip()
@@ -34,7 +34,7 @@ try:
             print(f"Page {page}: Could not find name. Error: {e}")
             name = None
 
-        # Extract Level 10 details (e.g., "Ki +2 and ATK & DEF +10%")
+        # Extract Level 10 details
         try:
             level_elements = driver.find_elements(By.CSS_SELECTOR, "div.col-12.col-sm-6 div.text")
             if level_elements and len(level_elements) >= 10:

@@ -5,7 +5,6 @@ from selenium.webdriver.support import expected_conditions as EC
 import pandas as pd
 import json
 import re
-from selenium.common.exceptions import NoSuchElementException
 
 
 # Selenium setup
@@ -432,8 +431,10 @@ try:
     processed_links = set()
 
     # Flag to indicate whether to start processing
-    start_link = "https://dokkan.wiki/cards/1016631"
     start_processing = False
+    
+    start_link = "https://dokkan.wiki/cards/1021051"
+    
 
     # Step 2: Visit Each Character Page
     total_characters = len(character_links)
@@ -466,7 +467,7 @@ try:
 
         # Save data (append to CSV only if not processed before)
         df = pd.DataFrame(character_data)
-        df.to_csv("dokkan_character_details.csv", mode='a', header=not bool(character_data), index=False)
+        df.to_csv("dokkan_character_details_2.csv", mode='a', header=not bool(character_data), index=False)
 
         # Mark this character link as processed
         processed_links.add(link)
@@ -484,7 +485,7 @@ try:
             
             total_transformations = len(transformation_items)
             print(f"Found {total_transformations} transformations for this character.")
-
+            
             # Process transformations one by one
             for i, item in enumerate(transformation_items):
                 # Re-locate transformations section and items after each navigation
@@ -520,7 +521,7 @@ try:
                     
                     #Save data
                     df = pd.DataFrame(character_data)
-                    df.to_csv("dokkan_character_details.csv", index=False)
+                    df.to_csv("dokkan_character_details_2.csv", mode='a', header=not bool(character_data), index=False)
 
                     # Update the "Transformation Condition" field with the offset condition
                     character_data[-1]["Transformation Condition"] = transformation_condition

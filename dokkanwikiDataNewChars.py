@@ -5,7 +5,6 @@ from selenium.webdriver.support import expected_conditions as EC
 import pandas as pd
 import json
 import re
-from selenium.common.exceptions import NoSuchElementException
 from datetime import datetime
 
 
@@ -451,7 +450,7 @@ try:
     total_pages = get_total_pages()
     print(f"Total pages found: {total_pages}")
 
-    for page in range(1, total_pages + 1):  # Use the dynamic total page count
+    for page in range(1, 2):  # Use the dynamic total page count
         if page in processed_pages:
             print(f"Skipping already processed page {page}.")
             continue  # Skip already processed pages

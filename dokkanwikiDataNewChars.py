@@ -411,18 +411,18 @@ def update_csv_if_needed(new_character_data, duplicate_check):
     new_release_date = new_character_data.get('Release Date')
     if new_release_date:
         try:
-            new_release_date = datetime.strptime(new_release_date, '%b %d, %Y')  # Example format: 'Dec 13, 2024'
+            new_release_date = datetime.strptime(new_release_date, '%b %d, %Y')
         except ValueError:
             print(f"Invalid release date format for {new_character_data['Subname']}. Skipping date comparison.")
             return False
 
     # Check the release date of the duplicate (existing) character in CSV
-    existing_release_date = duplicate_check['Release Date'].values[0]  # Assuming the release date is in the first row of duplicate_check
+    existing_release_date = duplicate_check['Release Date'].values[0]
     if existing_release_date:
         try:
-            existing_release_date = datetime.strptime(existing_release_date, '%b %d, %Y')  # Example format: 'Dec 13, 2024'
+            existing_release_date = datetime.strptime(existing_release_date, '%b %d, %Y')
         except ValueError:
-            print(f"Invalid release date format in CSV for {duplicate_check['Subname'].values[0]}. Skipping date comparison.")
+            print(f"Date format invalid for {duplicate_check['Subname'].values[0]}")
             return False
 
     # If the new release date is greater, update the old character data
@@ -519,8 +519,8 @@ try:
 
         else:
             print("Not a duplicate. Continuing...")
-            # Add the character data to the list (instead of writing to CSV immediately)
-            all_character_data.append(character_data[-1])  # Assuming character_data is a list of dicts
+            # Add the character data to the list
+            all_character_data.append(character_data[-1])
         
         
         # Handle Transformations
